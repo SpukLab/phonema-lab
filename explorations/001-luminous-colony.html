@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Phonema V2 — Exploration 001 / Luminous Colony</title>
+<style>
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020305;color:#d8dde7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  canvas{display:block;width:100%;height:100%;touch-action:none}
+  #label{position:fixed;left:18px;bottom:16px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.32;pointer-events:none;user-select:none}
+  #labControls{position:fixed;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));display:flex;gap:7px;z-index:20;opacity:.3;transition:opacity .2s}
+  #labControls:hover,#labControls:focus-within{opacity:.9}
+  #labControls button,#labControls a{appearance:none;border:1px solid rgba(255,255,255,.12);background:rgba(3,5,8,.48);backdrop-filter:blur(12px);color:#cfd6df;text-decoration:none;border-radius:999px;padding:9px 11px;font:9px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}
+  @media(max-width:700px){#label{bottom:max(12px,env(safe-area-inset-bottom));left:max(14px,env(safe-area-inset-left))}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas><nav id="labControls" aria-label="Lab controls"><a href="../index.html">Back</a><button id="labRestart" type="button">Restart</button><button id="labFullscreen" type="button">Full</button></nav><div id="label">Phonema V2 · Exploration 001 · Luminous Colony</div>
+<script>
+(() => {
+'use strict';
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d',{alpha:false});
+let W=1,H=1,DPR=1,now=0,last=performance.now();
+const TAU=Math.PI*2, N=1150;
+const P=[], nuclei=[];
+let pointer={x:0,y:0,active:false,energy:0};
+const rand=(a=1,b=0)=>b+Math.random()*(a-b);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const smooth=(a,b,x)=>{x=clamp((x-a)/(b-a),0,1);return x*x*(3-2*x)};
+function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
+addEventListener('resize',resize);resize();
+function makeNucleus(x,y,m=1){return{x,y,vx:0,vy:0,m,phase:rand(TAU),life:rand(1000),heat:rand(.25,.75),tx:x,ty:y}}
+for(let i=0;i<3;i++) nuclei.push(makeNucleus(W*(.38+i*.12),H*(.48+rand(.08,-.08)),i===1?1.3:.75));
+for(let i=0;i<N;i++){
+  const n=i%3, a=rand(TAU), r=Math.pow(Math.random(),1.7)*Math.min(W,H)*.16;
+  P.push({x:nuclei[n].x+Math.cos(a)*r,y:nuclei[n].y+Math.sin(a)*r,vx:rand(.2,-.2),vy:rand(.2,-.2),home:n,
+    seed:Math.random(),phase:rand(TAU),z:Math.random(),age:Math.random(),charge:rand(1,-1),trail:[],released:0,glow:rand(.9,.25)});
+}
+function director(t){
+  const q=.5+.5*Math.sin(t*.000071+Math.sin(t*.000019)*1.7);
+  const q2=.5+.5*Math.sin(t*.000113+2.1+Math.sin(t*.000031));
+  const event=Math.pow(Math.max(0,Math.sin(t*.000043-1.0)),7);
+  return {cohesion:.0045+q*.005, agitation:.012+q2*.026, release:.08+q2*.22+event*.52, drift:.15+q*.45, event};
+}
+function update(dt,t){
+  const d=director(t), cx=W*.5,cy=H*.5,scale=Math.min(W,H);
+  for(let k=0;k<nuclei.length;k++){
+    const n=nuclei[k]; n.life+=dt;
+    const ang=n.phase+t*(.000018+k*.000006)+Math.sin(t*.000011+n.phase)*.7;
+    const rr=scale*(.055+k*.018)*(0.7+d.drift*.45);
+    n.tx=cx+Math.cos(ang)*rr + Math.sin(t*.000027+k)*scale*.025;
+    n.ty=cy+Math.sin(ang*.83)*rr*.62 + Math.cos(t*.000021+k*1.7)*scale*.022;
+    n.vx+=(n.tx-n.x)*.000018*dt; n.vy+=(n.ty-n.y)*.000018*dt;
+    n.vx*=Math.pow(.985,dt/16.7);n.vy*=Math.pow(.985,dt/16.7);n.x+=n.vx;n.y+=n.vy;
+    n.heat=.35+.5*d.event+.15*Math.sin(t*.00017+n.phase);
+  }
+  for(let i=0;i<N;i++){
+    const p=P[i], n=nuclei[p.home];
+    let dx=n.x-p.x,dy=n.y-p.y,dist=Math.sqrt(dx*dx+dy*dy)+.001;
+    const threshold=.62+p.seed*.38;
+    const pulse=.5+.5*Math.sin(t*(.00013+p.seed*.00007)+p.phase+Math.sin(t*.000023+p.seed*5));
+    const shouldRelease=d.release*pulse>threshold;
+    p.released += ((shouldRelease?1:0)-p.released)*Math.min(1,dt*(shouldRelease?.0018:.0007));
+    const attract=d.cohesion*(1-p.released*.92)*(0.55+p.z*.8);
+    p.vx+=dx/dist*attract*dt; p.vy+=dy/dist*attract*dt;
+    const tangentX=-dy/dist,tangentY=dx/dist;
+    const handed=p.charge;
+    const impulse=p.released*(.00045+d.event*.0011)*(0.35+p.seed);
+    p.vx+=tangentX*handed*impulse*dt; p.vy+=tangentY*handed*impulse*dt;
+    const f=.0032, ang=Math.sin(p.x*f+t*.00019+p.phase)+Math.cos(p.y*f*.81-t*.00014-p.phase);
+    p.vx+=Math.cos(ang*2.2+p.phase)*d.agitation*.018*dt;
+    p.vy+=Math.sin(ang*2.0-p.phase)*d.agitation*.018*dt;
+    if(p.seed>.78){const other=nuclei[(p.home+1+(p.seed>.9?1:0))%3];p.vx+=(other.x-p.x)*.0000007*dt;p.vy+=(other.y-p.y)*.0000007*dt;}
+    if(pointer.active){let qx=p.x-pointer.x,qy=p.y-pointer.y,qd=Math.sqrt(qx*qx+qy*qy)+1;if(qd<scale*.22){const push=(1-qd/(scale*.22))*.0025*pointer.energy;p.vx+=qx/qd*push*dt;p.vy+=qy/qd*push*dt;p.released=Math.min(1,p.released+.012*dt/16.7)}}
+    const damp=Math.pow(.987-p.released*.003,dt/16.7);p.vx*=damp;p.vy*=damp;
+    const vmax=.95+p.released*2.5,sp=Math.hypot(p.vx,p.vy);if(sp>vmax){p.vx=p.vx/sp*vmax;p.vy=p.vy/sp*vmax;}
+    p.x+=p.vx*dt*.06;p.y+=p.vy*dt*.06;
+    if(p.x<-W*.15||p.x>W*1.15||p.y<-H*.15||p.y>H*1.15){p.x=n.x+rand(30,-30);p.y=n.y+rand(30,-30);p.vx*=.1;p.vy*=.1;p.released=0;}
+    if(i%4===0){p.trail.push([p.x,p.y]);if(p.trail.length>5)p.trail.shift();}
+  }
+  pointer.energy*=Math.pow(.94,dt/16.7);
+}
+function glow(x,y,r,color,alpha){const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(${color},${alpha})`);g.addColorStop(.18,`rgba(${color},${alpha*.42})`);g.addColorStop(1,`rgba(${color},0)`);ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);}
+function render(t){
+  ctx.globalCompositeOperation='source-over';ctx.fillStyle='rgba(2,3,5,.25)';ctx.fillRect(0,0,W,H);
+  const bg=ctx.createRadialGradient(W*.5,H*.5,0,W*.5,H*.5,Math.max(W,H)*.68);bg.addColorStop(0,'rgba(9,12,19,.22)');bg.addColorStop(.55,'rgba(3,5,9,.10)');bg.addColorStop(1,'rgba(0,0,0,.35)');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='lighter';
+  const d=director(t);
+  for(const n of nuclei){glow(n.x,n.y,Math.min(W,H)*(.09+n.m*.035),n.heat>.72?'210,86,176':'68,128,164',.022+n.heat*.02);}
+  for(let i=0;i<N;i++){
+    const p=P[i], speed=Math.hypot(p.vx,p.vy), act=clamp(p.released*.8+speed*.14,0,1);
+    const depth=.35+p.z*.65;
+    const warm=smooth(.35,.9,act+d.event*.35);
+    const R=Math.round(62+(218-62)*warm),G=Math.round(128+(82-128)*warm),B=Math.round(166+(184-166)*warm);
+    if(p.trail.length>1&&act>.16){ctx.beginPath();ctx.moveTo(p.trail[0][0],p.trail[0][1]);for(let j=1;j<p.trail.length;j++)ctx.lineTo(p.trail[j][0],p.trail[j][1]);ctx.strokeStyle=`rgba(${R},${G},${B},${.015+act*.045})`;ctx.lineWidth=.35+depth*.65;ctx.stroke();}
+    const r=(.55+p.glow*1.25)*(0.6+depth*.9)*(1+act*.45);
+    if((i+p.home)%9===0) glow(p.x,p.y,r*7,`${R},${G},${B}`,.018+act*.025);
+    ctx.beginPath();ctx.arc(p.x,p.y,r,0,TAU);ctx.fillStyle=`rgba(${R},${G},${B},${.20+depth*.42+act*.22})`;ctx.fill();
+    if(act>.62&&p.seed>.68){ctx.beginPath();ctx.arc(p.x,p.y,r*.28,0,TAU);ctx.fillStyle=`rgba(238,224,216,${.18+act*.38})`;ctx.fill();}
+  }
+  ctx.globalCompositeOperation='source-over';
+  const v=ctx.createRadialGradient(W*.5,H*.5,Math.min(W,H)*.20,W*.5,H*.5,Math.max(W,H)*.68);v.addColorStop(.45,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.62)');ctx.fillStyle=v;ctx.fillRect(0,0,W,H);
+}
+function frame(ts){const dt=Math.min(33,ts-last);last=ts;now=ts;update(dt,ts);render(ts);requestAnimationFrame(frame)}
+function setPointer(e,on){const r=canvas.getBoundingClientRect();pointer.x=(e.clientX-r.left);pointer.y=(e.clientY-r.top);pointer.active=on;pointer.energy=on?1:pointer.energy;}
+canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);setPointer(e,true)});canvas.addEventListener('pointermove',e=>{if(pointer.active)setPointer(e,true)});canvas.addEventListener('pointerup',e=>setPointer(e,false));canvas.addEventListener('pointercancel',e=>setPointer(e,false));
+requestAnimationFrame(frame);
+const restart=document.getElementById('labRestart');if(restart)restart.addEventListener('click',()=>location.reload());
+const fs=document.getElementById('labFullscreen');if(fs)fs.addEventListener('click',async()=>{try{if(!document.fullscreenElement){await document.documentElement.requestFullscreen?.()}else{await document.exitFullscreen?.()}}catch(_){}});
+})();
+</script>
+</body></html>
