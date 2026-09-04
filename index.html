@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#020305" />
+<title>Phonema Lab</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#020305;color:#e6e8ee;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{min-height:100dvh;padding:max(24px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(28px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));display:flex;justify-content:center}.wrap{width:min(980px,100%);padding-top:8vh}.eyebrow{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.22em;text-transform:uppercase;color:#69717f}.title{font-size:clamp(38px,8vw,92px);letter-spacing:-.045em;margin:18px 0 8px;font-weight:650}.sub{max-width:660px;color:#8d95a4;font-size:clamp(15px,2vw,19px);line-height:1.5;margin-bottom:48px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.card{display:block;text-decoration:none;color:inherit;border:1px solid #181d25;background:linear-gradient(145deg,rgba(17,21,29,.8),rgba(5,7,11,.72));min-height:210px;padding:22px;border-radius:22px;position:relative;overflow:hidden;transition:transform .2s ease,border-color .2s ease}.card:active{transform:scale(.985)}.card::after{content:"";position:absolute;inset:auto -30% -60% 10%;height:180px;background:radial-gradient(circle,rgba(83,128,166,.12),transparent 65%);pointer-events:none}.num{font:600 12px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.16em;color:#69717f}.name{font-size:24px;margin:22px 0 8px;letter-spacing:-.025em}.desc{font-size:14px;line-height:1.45;color:#8a92a1;max-width:34ch}.open{position:absolute;left:22px;bottom:20px;font:600 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.18em;color:#b7c3d7}.hot::after{background:radial-gradient(circle,rgba(221,94,181,.14),rgba(232,154,88,.08),transparent 68%)}.foot{margin-top:46px;color:#4e5663;font:11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase}@media(max-width:520px){.wrap{padding-top:5vh}.sub{margin-bottom:30px}.card{min-height:190px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="eyebrow">SpukLab / Spoonexx</div>
+  <h1 class="title">Phonema Lab</h1>
+  <p class="sub">Laboratorio de organismos visuales. Cada exploración se conserva como una hipótesis independiente: observar, comparar, preservar accidentes, continuar.</p>
+  <section class="grid">
+    <a class="card" href="explorations/001-luminous-colony.html">
+      <div class="num">EXPLORATION 001</div>
+      <div class="name">Luminous Colony</div>
+      <div class="desc">Primera colonia autónoma. Cohesión, deriva, desprendimientos y exaltaciones emergentes.</div>
+      <div class="open">OPEN →</div>
+    </a>
+    <a class="card hot" href="explorations/002-excitation-release.html">
+      <div class="num">EXPLORATION 002</div>
+      <div class="name">Excitation / Release</div>
+      <div class="desc">Contraste energético ampliado: acumulación, eyección colectiva, destellos, filamentos y reagrupamiento.</div>
+      <div class="open">OPEN →</div>
+    </a>
+  </section>
+  <div class="foot">Mobile-first · static HTML · no build system</div>
+</main>
+</body>
+</html>
