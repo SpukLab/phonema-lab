@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#010204" />
+<title>Phonema V2 — Exploration 003 / Propagation Aftermath</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#010204;color:#d8dde7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}canvas{display:block;width:100%;height:100%;touch-action:none}#label{position:fixed;left:max(18px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.26;pointer-events:none;user-select:none}#labControls{position:fixed;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));display:flex;gap:7px;z-index:20;opacity:.3;transition:opacity .2s}#labControls:hover,#labControls:focus-within{opacity:.9}#labControls button,#labControls a{appearance:none;border:1px solid rgba(255,255,255,.12);background:rgba(3,5,8,.48);backdrop-filter:blur(12px);color:#cfd6df;text-decoration:none;border-radius:999px;padding:9px 11px;font:9px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas><nav id="labControls"><a href="../index.html">Back</a><button id="restart">Restart</button><button id="full">Full</button></nav><div id="label">Phonema V2 · Exploration 003 · Propagation / Aftermath</div>
+<script>
+(()=>{'use strict';
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d',{alpha:false});
+let W=1,H=1,DPR=1,last=performance.now(),touchCharge=0,touchCooldown=0;const TAU=Math.PI*2,N=1850;const P=[],nuclei=[],satellites=[];let pointer={x:0,y:0,active:false,energy:0};
+const rand=(a=1,b=0)=>b+Math.random()*(a-b),clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),smooth=(a,b,x)=>{x=clamp((x-a)/(b-a),0,1);return x*x*(3-2*x)},lerp=(a,b,t)=>a+(b-a)*t;
+function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}addEventListener('resize',resize);resize();
+function nucleus(x,y,m=1){return{x,y,vx:0,vy:0,m,phase:rand(TAU),heat:.22,charge:0}}
+for(let i=0;i<4;i++)nuclei.push(nucleus(W*(.40+i*.065),H*(.50+rand(.055,-.055)),i===1||i===2?1.2:.76));
+for(let i=0;i<N;i++){const h=i%4,a=rand(TAU),r=Math.pow(Math.random(),1.75)*Math.min(W,H)*.17;P.push({x:nuclei[h].x+Math.cos(a)*r,y:nuclei[h].y+Math.sin(a)*r,vx:rand(.18,-.18),vy:rand(.18,-.18),home:h,seed:Math.random(),phase:rand(TAU),z:Math.random(),charge:rand(1,-1),released:0,flash:0,trail:[],glow:rand(1.18,.28),age:Math.random(),orphan:0,after:0})}
+function director(t){
+  const cycle=(t*.000052)%1; // ~120s
+  const quiet=1-smooth(.12,.30,cycle);
+  const presage=smooth(.11,.27,cycle)*(1-smooth(.34,.45,cycle));
+  const ignition=smooth(.28,.38,cycle)*(1-smooth(.50,.58,cycle));
+  const propagation=smooth(.40,.53,cycle)*(1-smooth(.68,.78,cycle));
+  const aftermath=smooth(.60,.75,cycle)*(1-smooth(.92,.995,cycle));
+  const peak=Math.pow(Math.max(ignition,propagation*.92),1.35);
+  const micro=.5+.5*Math.sin(t*.00011+Math.sin(t*.000037)*1.7);
+  const external=clamp(touchCharge,0,1);
+  return{cycle,quiet,presage,ignition,propagation,aftermath,peak,external,
+    cohesion:.0049-peak*.0028-aftermath*.0012+quiet*.0018,
+    agitation:.012+presage*.026+peak*.082+external*.11,
+    release:.08+presage*.15+ignition*.78+propagation*.92+external*.9,
+    exposure:.68+presage*.26+peak*1.75+aftermath*.42+external*.85,
+    warmth:clamp(presage*.22+ignition*.46+propagation*.72+external*.38,0,1),
+    residue:aftermath*(1-peak*.5),micro};
+}
+function spawnSatellite(x,y,energy=1,seed=Math.random()){satellites.push({x,y,vx:rand(1.8,-1.8)*energy,vy:rand(1.8,-1.8)*energy,life:1,seed,phase:rand(TAU),mass:rand(1.15,.55),orbit:rand(1,-1),members:[]});if(satellites.length>9)satellites.shift()}
+function update(dt,t){const d=director(t),cx=W*.5,cy=H*.5,scale=Math.min(W,H);touchCharge*=Math.pow(.988,dt/16.7);touchCooldown=Math.max(0,touchCooldown-dt);
+ for(let k=0;k<nuclei.length;k++){const n=nuclei[k],ang=n.phase+t*(.000014+k*.0000043)+Math.sin(t*.000008+n.phase)*.75,rr=scale*(.055+k*.010)*(0.72+d.micro*.30+d.propagation*.18);n.tx=cx+Math.cos(ang)*rr+Math.sin(t*.000021+k*1.7)*scale*.032;n.ty=cy+Math.sin(ang*.81)*rr*.64+Math.cos(t*.000017+k*.91)*scale*.026;n.vx+=(n.tx-n.x)*.000017*dt;n.vy+=(n.ty-n.y)*.000017*dt;n.vx*=Math.pow(.985,dt/16.7);n.vy*=Math.pow(.985,dt/16.7);n.x+=n.vx;n.y+=n.vy;n.heat=.18+d.presage*.16+d.peak*.72+d.external*.42;}
+ for(const s of satellites){s.life-=dt*.000042*(d.aftermath>.15?1.5:.62);s.phase+=dt*.00018*s.orbit;s.vx+=Math.cos(s.phase)*.00012*dt;s.vy+=Math.sin(s.phase*.93)*.00012*dt;s.vx*=Math.pow(.994,dt/16.7);s.vy*=Math.pow(.994,dt/16.7);s.x+=s.vx*dt*.055;s.y+=s.vy*dt*.055}
+ for(let i=0;i<N;i++){const p=P[i],n=nuclei[p.home];let dx=n.x-p.x,dy=n.y-p.y,dist=Math.hypot(dx,dy)+.001;const pulse=.5+.5*Math.sin(t*(.00010+p.seed*.00009)+p.phase+Math.sin(t*.000018+p.seed*7));const threshold=.54+p.seed*.43;const releaseSignal=d.release*pulse+(p.seed>.82?d.peak*.56:0);const should=releaseSignal>threshold;p.released+=((should?1:0)-p.released)*Math.min(1,dt*(should?.0037:.00078));const attract=d.cohesion*(1-p.released*.97)*(0.5+p.z*.88);p.vx+=dx/dist*attract*dt;p.vy+=dy/dist*attract*dt;
+   const tx=-dy/dist,ty=dx/dist;const takeoff=p.released*(.00068+d.peak*.0031+d.external*.0022)*(0.23+p.seed);p.vx+=tx*p.charge*takeoff*dt;p.vy+=ty*p.charge*takeoff*dt;
+   if((d.ignition>.16||d.external>.2)&&p.seed>.66){const burst=(d.ignition+d.external*.65)*.0036*(.32+p.seed);const phi=n.phase+p.seed*TAU*.73;p.vx+=(Math.cos(phi)*.54+tx*.86)*burst*dt;p.vy+=(Math.sin(phi)*.44+ty*.86)*burst*dt;p.flash=Math.min(1,p.flash+.032*dt/16.7)}
+   if(d.propagation>.12&&p.seed>.74){const wave=Math.sin((p.x+p.y)*.008-t*.012+p.phase);const kick=Math.max(0,wave)*d.propagation*.0024;p.vx+=tx*kick*dt;p.vy+=ty*kick*dt;p.after=Math.min(1,p.after+.018*dt/16.7)}
+   const f=.0029,flow=Math.sin(p.x*f+t*.00020+p.phase)+Math.cos(p.y*f*.77-t*.00015-p.phase);p.vx+=Math.cos(flow*2.35+p.phase)*d.agitation*.023*dt;p.vy+=Math.sin(flow*2.02-p.phase)*d.agitation*.023*dt;
+   if(d.aftermath>.10&&p.seed>.86){p.orphan+=(1-p.orphan)*Math.min(1,dt*.0015);let target=satellites[(i+Math.floor(p.seed*9))%Math.max(1,satellites.length)];if(target){const sx=target.x-p.x,sy=target.y-p.y,sd=Math.hypot(sx,sy)+1;p.vx+=sx/sd*.00105*d.aftermath*dt;p.vy+=sy/sd*.00105*d.aftermath*dt}}else p.orphan*=Math.pow(.997,dt/16.7);
+   if(pointer.active){const qx=p.x-pointer.x,qy=p.y-pointer.y,qd=Math.hypot(qx,qy)+1;if(qd<scale*.28){const push=(1-qd/(scale*.28))*.0048*pointer.energy;p.vx+=qx/qd*push*dt;p.vy+=qy/qd*push*dt;p.released=Math.min(1,p.released+.024*dt/16.7);p.flash=Math.min(1,p.flash+.016);p.after=Math.min(1,p.after+.012)}}
+   p.flash*=Math.pow(.948,dt/16.7);p.after*=Math.pow(.992,dt/16.7);const damp=Math.pow(.986-p.released*.0042,dt/16.7);p.vx*=damp;p.vy*=damp;const vmax=1.2+p.released*4.7+d.peak*1.6+d.external*1.5,sp=Math.hypot(p.vx,p.vy);if(sp>vmax){p.vx=p.vx/sp*vmax;p.vy=p.vy/sp*vmax}p.x+=p.vx*dt*.067;p.y+=p.vy*dt*.067;
+   if(p.x<-W*.35||p.x>W*1.35||p.y<-H*.35||p.y>H*1.35){p.x=n.x+rand(45,-45);p.y=n.y+rand(45,-45);p.vx*=.08;p.vy*=.08;p.released=0;p.flash=.28;p.orphan=0}
+   if(i%3===0){p.trail.push([p.x,p.y]);if(p.trail.length>11)p.trail.shift()}
+ }
+ if((d.ignition>.64&&satellites.length<3)||(d.propagation>.55&&Math.random()<dt*.00020)){const ang=rand(TAU),r=scale*rand(.32,.15);spawnSatellite(cx+Math.cos(ang)*r,cy+Math.sin(ang)*r,1+d.peak*.7)}
+ satellites.splice(0,satellites.length,...satellites.filter(s=>s.life>0));pointer.energy*=Math.pow(.94,dt/16.7)}
+function glow(x,y,r,color,a){const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(${color},${a})`);g.addColorStop(.12,`rgba(${color},${a*.56})`);g.addColorStop(.42,`rgba(${color},${a*.14})`);g.addColorStop(1,`rgba(${color},0)`);ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2)}
+function render(t){const d=director(t);ctx.globalCompositeOperation='source-over';ctx.fillStyle=`rgba(1,2,4,${.24-d.peak*.065})`;ctx.fillRect(0,0,W,H);const bg=ctx.createRadialGradient(W*.5,H*.5,0,W*.5,H*.5,Math.max(W,H)*.72);bg.addColorStop(0,`rgba(8,11,19,${.15+d.presage*.05+d.peak*.09})`);bg.addColorStop(.6,'rgba(2,4,8,.07)');bg.addColorStop(1,'rgba(0,0,0,.42)');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation='lighter';
+ for(const n of nuclei){const col=d.warmth>.48?'230,95,177':'70,131,173';glow(n.x,n.y,Math.min(W,H)*(.075+n.m*.045),col,.018+n.heat*.06)}
+ for(const s of satellites){const a=clamp(s.life,0,1);glow(s.x,s.y,Math.min(W,H)*(.018+s.mass*.012),'126,100,215',a*.045);ctx.beginPath();ctx.arc(s.x,s.y,1.3+s.mass*1.8,0,TAU);ctx.fillStyle=`rgba(215,177,255,${a*.55})`;ctx.fill()}
+ for(let i=0;i<N;i++){const p=P[i],speed=Math.hypot(p.vx,p.vy),act=clamp(p.released*.65+speed*.11+p.flash*.74+p.after*.42,0,1),depth=.28+p.z*.72;const hue=clamp(d.warmth*.58+p.after*.38+p.orphan*.25,0,1),R=Math.round(58+(243-58)*hue),G=Math.round(135+(99-135)*hue),B=Math.round(186+(198-186)*hue);if(p.trail.length>1&&act>.10){ctx.beginPath();ctx.moveTo(p.trail[0][0],p.trail[0][1]);for(let j=1;j<p.trail.length;j++)ctx.lineTo(p.trail[j][0],p.trail[j][1]);ctx.strokeStyle=`rgba(${R},${G},${B},${.010+act*.15*d.exposure})`;ctx.lineWidth=.26+depth*.82+act*.62;ctx.stroke()}
+   const r=(.48+p.glow*1.38)*(0.55+depth*.92)*(1+act*.72);if((i+p.home)%7===0)glow(p.x,p.y,r*(6+act*9),`${R},${G},${B}`,.010+act*.06*d.exposure);ctx.beginPath();ctx.arc(p.x,p.y,r,0,TAU);ctx.fillStyle=`rgba(${R},${G},${B},${.17+depth*.39+act*.35})`;ctx.fill();if(act>.40&&p.seed>.52){ctx.beginPath();ctx.arc(p.x,p.y,r*(.16+.16*act),0,TAU);ctx.fillStyle=`rgba(248,237,229,${.16+act*.72})`;ctx.fill()}}
+ if(d.peak>.25||d.external>.18){const a=(Math.max(d.peak,d.external)-.18)*.06;const g=ctx.createRadialGradient(W*.5,H*.5,0,W*.5,H*.5,Math.min(W,H)*.52);g.addColorStop(0,`rgba(248,181,224,${a})`);g.addColorStop(.36,`rgba(105,157,224,${a*.38})`);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}ctx.globalCompositeOperation='source-over';const v=ctx.createRadialGradient(W*.5,H*.5,Math.min(W,H)*.15,W*.5,H*.5,Math.max(W,H)*.74);v.addColorStop(.4,'rgba(0,0,0,0)');v.addColorStop(1,`rgba(0,0,0,${.60-d.peak*.16-d.external*.10})`);ctx.fillStyle=v;ctx.fillRect(0,0,W,H)}
+function frame(ts){const dt=Math.min(33,ts-last);last=ts;update(dt,ts);render(ts);requestAnimationFrame(frame)}
+function setPointer(e,on){const r=canvas.getBoundingClientRect();pointer.x=e.clientX-r.left;pointer.y=e.clientY-r.top;pointer.active=on;pointer.energy=on?1:pointer.energy;if(on){touchCharge=Math.min(1,touchCharge+.34);if(touchCooldown<=0){spawnSatellite(pointer.x,pointer.y,.75);touchCooldown=420}}}canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);setPointer(e,true)});canvas.addEventListener('pointermove',e=>{if(pointer.active)setPointer(e,true)});canvas.addEventListener('pointerup',e=>setPointer(e,false));canvas.addEventListener('pointercancel',e=>setPointer(e,false));document.getElementById('restart').onclick=()=>location.reload();document.getElementById('full').onclick=async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();else await document.exitFullscreen?.()}catch(_){}};requestAnimationFrame(frame)
+})();
+</script>
+</body></html>
