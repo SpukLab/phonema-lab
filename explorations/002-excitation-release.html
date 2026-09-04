@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#010204" />
+<title>Phonema V2 — Exploration 002 / Excitation Release</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#010204;color:#d8dde7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}canvas{display:block;width:100%;height:100%;touch-action:none}#label{position:fixed;left:max(18px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.3;pointer-events:none;user-select:none}#labControls{position:fixed;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));display:flex;gap:7px;z-index:20;opacity:.3;transition:opacity .2s}#labControls:hover,#labControls:focus-within{opacity:.9}#labControls button,#labControls a{appearance:none;border:1px solid rgba(255,255,255,.12);background:rgba(3,5,8,.48);backdrop-filter:blur(12px);color:#cfd6df;text-decoration:none;border-radius:999px;padding:9px 11px;font:9px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas><nav id="labControls"><a href="../index.html">Back</a><button id="restart">Restart</button><button id="full">Full</button></nav><div id="label">Phonema V2 · Exploration 002 · Excitation / Release</div>
+<script>
+(()=>{'use strict';
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d',{alpha:false});let W=1,H=1,DPR=1,last=performance.now();const TAU=Math.PI*2,N=1650;const P=[],nuclei=[];let pointer={x:0,y:0,active:false,energy:0};
+const rand=(a=1,b=0)=>b+Math.random()*(a-b),clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),smooth=(a,b,x)=>{x=clamp((x-a)/(b-a),0,1);return x*x*(3-2*x)};
+function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}addEventListener('resize',resize);resize();
+function nucleus(x,y,m=1){return{x,y,vx:0,vy:0,m,phase:rand(TAU),heat:0.3,charge:0}}
+for(let i=0;i<4;i++)nuclei.push(nucleus(W*(.39+i*.075),H*(.50+rand(.06,-.06)),i===1||i===2?1.15:.72));
+for(let i=0;i<N;i++){const h=i%4,a=rand(TAU),r=Math.pow(Math.random(),1.8)*Math.min(W,H)*.18;P.push({x:nuclei[h].x+Math.cos(a)*r,y:nuclei[h].y+Math.sin(a)*r,vx:rand(.18,-.18),vy:rand(.18,-.18),home:h,seed:Math.random(),phase:rand(TAU),z:Math.random(),charge:rand(1,-1),released:0,flash:0,trail:[],glow:rand(1.15,.3),age:Math.random()})}
+function director(t){
+  const slow=.5+.5*Math.sin(t*.000051+Math.sin(t*.000017)*1.8);
+  const breath=.5+.5*Math.sin(t*.000097+1.7+Math.sin(t*.000029)*.9);
+  const e1=Math.pow(Math.max(0,Math.sin(t*.000074-1.2)),13);
+  const e2=Math.pow(Math.max(0,Math.sin(t*.000043+2.1)),19)*.78;
+  const event=clamp(e1+e2,0,1);
+  const pre=smooth(.12,.62,.5+.5*Math.sin(t*.000074-1.58))* (1-event*.45);
+  return{cohesion:.0048+slow*.0046,agitation:.014+breath*.032+event*.055,release:.10+breath*.20+event*.82,drift:.20+slow*.48,event,pre,exposure:.75+event*1.75};
+}
+function update(dt,t){const d=director(t),cx=W*.5,cy=H*.5,scale=Math.min(W,H);
+ for(let k=0;k<nuclei.length;k++){const n=nuclei[k],ang=n.phase+t*(.000015+k*.0000047)+Math.sin(t*.000009+n.phase)*.8,rr=scale*(.06+k*.011)*(0.72+d.drift*.42);n.charge+=(d.event-n.charge)*Math.min(1,dt*.0015);n.tx=cx+Math.cos(ang)*rr+Math.sin(t*.000024+k*1.7)*scale*.034;n.ty=cy+Math.sin(ang*.79)*rr*.62+Math.cos(t*.000018+k*.91)*scale*.028;n.vx+=(n.tx-n.x)*.000018*dt;n.vy+=(n.ty-n.y)*.000018*dt;n.vx*=Math.pow(.985,dt/16.7);n.vy*=Math.pow(.985,dt/16.7);n.x+=n.vx;n.y+=n.vy;n.heat=.30+d.pre*.24+d.event*.65;}
+ for(let i=0;i<N;i++){const p=P[i],n=nuclei[p.home];let dx=n.x-p.x,dy=n.y-p.y,dist=Math.hypot(dx,dy)+.001;const pulse=.5+.5*Math.sin(t*(.000115+p.seed*.000085)+p.phase+Math.sin(t*.000021+p.seed*7));const threshold=.55+p.seed*.42;const releaseSignal=d.release*pulse+(p.seed>.84?d.event*.55:0);const should=releaseSignal>threshold;p.released+=((should?1:0)-p.released)*Math.min(1,dt*(should?.0034:.0009));const attract=d.cohesion*(1-p.released*.96)*(0.52+p.z*.85);p.vx+=dx/dist*attract*dt;p.vy+=dy/dist*attract*dt;
+   const tx=-dy/dist,ty=dx/dist;const takeoff=p.released*(.0007+d.event*.0028)*(0.25+p.seed*.95);p.vx+=tx*p.charge*takeoff*dt;p.vy+=ty*p.charge*takeoff*dt;
+   if(d.event>.22&&p.seed>.68){const burst=(d.event-.22)*.0032*(.3+p.seed);const phi=n.phase+p.seed*TAU*.7;p.vx+=(Math.cos(phi)*.62+tx*.78)*burst*dt;p.vy+=(Math.sin(phi)*.42+ty*.78)*burst*dt;p.flash=Math.min(1,p.flash+.026*dt/16.7)}
+   const f=.0030,flow=Math.sin(p.x*f+t*.00022+p.phase)+Math.cos(p.y*f*.74-t*.00017-p.phase);p.vx+=Math.cos(flow*2.4+p.phase)*d.agitation*.022*dt;p.vy+=Math.sin(flow*2.05-p.phase)*d.agitation*.022*dt;
+   if(p.seed>.80){const o=nuclei[(p.home+1+(p.seed>.92?1:0))%4];p.vx+=(o.x-p.x)*.0000009*dt;p.vy+=(o.y-p.y)*.0000009*dt}
+   if(pointer.active){const qx=p.x-pointer.x,qy=p.y-pointer.y,qd=Math.hypot(qx,qy)+1;if(qd<scale*.25){const push=(1-qd/(scale*.25))*.0035*pointer.energy;p.vx+=qx/qd*push*dt;p.vy+=qy/qd*push*dt;p.released=Math.min(1,p.released+.016*dt/16.7);p.flash=Math.min(1,p.flash+.01)}}
+   p.flash*=Math.pow(.95,dt/16.7);const damp=Math.pow(.986-p.released*.004,dt/16.7);p.vx*=damp;p.vy*=damp;const vmax=1.15+p.released*4.2+d.event*1.4,sp=Math.hypot(p.vx,p.vy);if(sp>vmax){p.vx=p.vx/sp*vmax;p.vy=p.vy/sp*vmax}p.x+=p.vx*dt*.067;p.y+=p.vy*dt*.067;
+   if(p.x<-W*.3||p.x>W*1.3||p.y<-H*.3||p.y>H*1.3){p.x=n.x+rand(40,-40);p.y=n.y+rand(40,-40);p.vx*=.08;p.vy*=.08;p.released=0;p.flash=.35}
+   if(i%3===0){p.trail.push([p.x,p.y]);if(p.trail.length>9)p.trail.shift()}
+ }pointer.energy*=Math.pow(.94,dt/16.7)}
+function glow(x,y,r,color,a){const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(${color},${a})`);g.addColorStop(.12,`rgba(${color},${a*.56})`);g.addColorStop(.42,`rgba(${color},${a*.14})`);g.addColorStop(1,`rgba(${color},0)`);ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2)}
+function render(t){const d=director(t);ctx.globalCompositeOperation='source-over';ctx.fillStyle=`rgba(1,2,4,${.26-d.event*.07})`;ctx.fillRect(0,0,W,H);const bg=ctx.createRadialGradient(W*.5,H*.5,0,W*.5,H*.5,Math.max(W,H)*.7);bg.addColorStop(0,`rgba(8,11,19,${.17+d.event*.08})`);bg.addColorStop(.6,'rgba(2,4,8,.08)');bg.addColorStop(1,'rgba(0,0,0,.40)');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation='lighter';
+ for(const n of nuclei){glow(n.x,n.y,Math.min(W,H)*(.08+n.m*.045),d.event>.45?'225,91,176':'70,131,173',.022+n.heat*.055)}
+ for(let i=0;i<N;i++){const p=P[i],speed=Math.hypot(p.vx,p.vy),act=clamp(p.released*.72+speed*.12+p.flash*.78,0,1),depth=.28+p.z*.72,warm=smooth(.25,.86,act+d.event*.48),R=Math.round(54+(238-54)*warm),G=Math.round(124+(105-124)*warm),B=Math.round(180+(191-180)*warm);if(p.trail.length>1&&act>.12){ctx.beginPath();ctx.moveTo(p.trail[0][0],p.trail[0][1]);for(let j=1;j<p.trail.length;j++)ctx.lineTo(p.trail[j][0],p.trail[j][1]);ctx.strokeStyle=`rgba(${R},${G},${B},${.012+act*.13*d.exposure})`;ctx.lineWidth=.3+depth*.8+act*.55;ctx.stroke()}
+   const r=(.5+p.glow*1.34)*(0.55+depth*.92)*(1+act*.65);if((i+p.home)%7===0)glow(p.x,p.y,r*(6+act*8),`${R},${G},${B}`,.012+act*.052*d.exposure);ctx.beginPath();ctx.arc(p.x,p.y,r,0,TAU);ctx.fillStyle=`rgba(${R},${G},${B},${.18+depth*.38+act*.34})`;ctx.fill();if(act>.42&&p.seed>.54){ctx.beginPath();ctx.arc(p.x,p.y,r*(.18+.15*act),0,TAU);ctx.fillStyle=`rgba(246,235,224,${.18+act*.68})`;ctx.fill()}}
+ if(d.event>.35){const a=(d.event-.35)*.055;const g=ctx.createRadialGradient(W*.5,H*.5,0,W*.5,H*.5,Math.min(W,H)*.48);g.addColorStop(0,`rgba(245,176,220,${a})`);g.addColorStop(.38,`rgba(94,156,218,${a*.42})`);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}ctx.globalCompositeOperation='source-over';const v=ctx.createRadialGradient(W*.5,H*.5,Math.min(W,H)*.16,W*.5,H*.5,Math.max(W,H)*.72);v.addColorStop(.4,'rgba(0,0,0,0)');v.addColorStop(1,`rgba(0,0,0,${.58-d.event*.14})`);ctx.fillStyle=v;ctx.fillRect(0,0,W,H)}
+function frame(ts){const dt=Math.min(33,ts-last);last=ts;update(dt,ts);render(ts);requestAnimationFrame(frame)}
+function setPointer(e,on){const r=canvas.getBoundingClientRect();pointer.x=e.clientX-r.left;pointer.y=e.clientY-r.top;pointer.active=on;pointer.energy=on?1:pointer.energy}canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);setPointer(e,true)});canvas.addEventListener('pointermove',e=>{if(pointer.active)setPointer(e,true)});canvas.addEventListener('pointerup',e=>setPointer(e,false));canvas.addEventListener('pointercancel',e=>setPointer(e,false));document.getElementById('restart').onclick=()=>location.reload();document.getElementById('full').onclick=async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();else await document.exitFullscreen?.()}catch(_){}};requestAnimationFrame(frame)
+})();
+</script>
+</body></html>
